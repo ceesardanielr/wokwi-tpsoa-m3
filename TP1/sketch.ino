@@ -34,8 +34,12 @@ LiquidCrystal_I2C LCD = LiquidCrystal_I2C(0x27, 16, 2);
 #define PIN_P_ACTUADOR_LED_SONIDO 2
 #define PIN_D_ACTUADOR_LED_MOVIMIENTO 4
 
+
 // Declaramos la intensidad del brillo
 int BRILLO = 0;
+
+//modo
+int MODO = 0; //0 Normal 1 Full
 
 //Características del PWM
 const int frecuencia = 1000;
@@ -111,6 +115,15 @@ void fsm()
     LCD.println("MOVIMIENTO...");
   }
 
+  LCD.setCursor(0, 1);
+  switch (MODO)
+  {
+    case 1 : LCD.println("Modo full");
+             break;
+    case 0 : LCD.println("Modo Normal");
+             break;
+  }
+
 }
 
 void setup()
@@ -122,14 +135,10 @@ void loop()
 {
     last_button_state = button_state;      // save the last state
     button_state = digitalRead(PIN_D_PULSADOR_FUNCION); // read new state
-    LCD.setCursor(0, 1);
+    
     if (last_button_state == HIGH && button_state == LOW) 
     {
-      LCD.println("Modo full");
-    }
-    if (last_button_state == LOW && button_state == HIGH) 
-    {
-      LCD.println("Modo normal");
+      MODO = !MODO;
     }
     fsm();
   
