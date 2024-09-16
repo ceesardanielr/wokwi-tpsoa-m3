@@ -66,6 +66,7 @@ void start()
   pinMode(PIN_D_SENSOR_DISTANCIA, INPUT);
  // pinMode(PIN_D_PULSADOR_FUNCION, INPUT);
 
+    //Inicializar variables pulsador
     pinMode(PIN_D_PULSADOR_FUNCION, INPUT_PULLUP);
     button_state = digitalRead(PIN_D_PULSADOR_FUNCION);
 }
@@ -85,42 +86,55 @@ void fsm()
   //Encendemos el led
   analogWrite(PIN_P_ACTUADOR_LED_SONIDO, BRILLO);
 
-  //---Pir---
-  valorMovimiento = digitalRead(PIN_D_SENSOR_DISTANCIA);
-
-  if (valorMovimiento == HIGH) 
-  {
-    digitalWrite(PIN_D_ACTUADOR_LED_MOVIMIENTO, HIGH);
-  }
-  else 
-  {
-    digitalWrite(PIN_D_ACTUADOR_LED_MOVIMIENTO, LOW);
-  }
+  
   
   LCD.setCursor(0, 0);
   // --Display--
-  if(BRILLO > UMBRAL_SONIDO_ALTO){
+  if(BRILLO > UMBRAL_SONIDO_ALTO)
+  {
       LCD.println("SONIDO ALTO...");
   }
 
-  if(BRILLO > UMBRAL_SONIDO_MEDIO && BRILLO < UMBRAL_SONIDO_ALTO){
+  if(BRILLO > UMBRAL_SONIDO_MEDIO && BRILLO < UMBRAL_SONIDO_ALTO)
+  {
     LCD.println("SONIDO MEDIO...");
   }
 
-  if(BRILLO > UMBRAL_SONIDO_BAJO && BRILLO < UMBRAL_SONIDO_MEDIO){
+  if(BRILLO > UMBRAL_SONIDO_BAJO && BRILLO < UMBRAL_SONIDO_MEDIO)
+  {
     LCD.println("SONIDO BAJO...");
   }
 
-  if(BRILLO < UMBRAL_SONIDO_BAJO && valorMovimiento == HIGH){
-    LCD.println("MOVIMIENTO...");
-  }
+  
 
-  LCD.setCursor(0, 1);
   switch (MODO)
   {
-    case 1 : LCD.println("Modo full");
+    case 1 : 
+    
+             //---Pir---
+             valorMovimiento = digitalRead(PIN_D_SENSOR_DISTANCIA);
+
+              if (valorMovimiento == HIGH) 
+              {
+                digitalWrite(PIN_D_ACTUADOR_LED_MOVIMIENTO, HIGH);
+              }
+              else 
+              {
+                digitalWrite(PIN_D_ACTUADOR_LED_MOVIMIENTO, LOW);
+              }
+
+              LCD.setCursor(0, 0);
+            if(BRILLO < UMBRAL_SONIDO_BAJO && valorMovimiento == HIGH)
+             {
+              LCD.println("MOVIMIENTO...");
+             }
+
+             LCD.setCursor(0, 1);
+             LCD.println("Modo full");
              break;
-    case 0 : LCD.println("Modo Normal");
+    case 0 : 
+             LCD.setCursor(0, 1);
+             LCD.println("Modo Normal");
              break;
   }
 
@@ -133,8 +147,8 @@ void setup()
 
 void loop()
 {
-    last_button_state = button_state;      // save the last state
-    button_state = digitalRead(PIN_D_PULSADOR_FUNCION); // read new state
+    last_button_state = button_state;      // Estado pulsador anterior
+    button_state = digitalRead(PIN_D_PULSADOR_FUNCION); // Estado actual pulsador
     
     if (last_button_state == HIGH && button_state == LOW) 
     {
