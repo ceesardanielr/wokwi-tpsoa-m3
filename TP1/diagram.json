@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "César Rodríguez",
+  "author": "Nicolás Sierra",
   "editor": "wokwi",
   "parts": [
     { "type": "wokwi-breadboard-half", "id": "bb1", "top": 25.8, "left": -131.6, "attrs": {} },
@@ -21,12 +21,18 @@
       "left": -38.4,
       "attrs": { "value": "1000" }
     },
-    { "type": "wokwi-pir-motion-sensor", "id": "pir1", "top": -101.6, "left": 88.62, "attrs": {} },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir1",
+      "top": -101.6,
+      "left": 88.62,
+      "attrs": { "delayTime": "0.1" }
+    },
     {
       "type": "wokwi-slide-potentiometer",
       "id": "pot2",
       "top": -167.8,
-      "left": -135.4,
+      "left": -173.8,
       "attrs": { "travelLength": "30" }
     },
     {
@@ -41,9 +47,9 @@
     {
       "type": "wokwi-pushbutton",
       "id": "btn1",
-      "top": 76.7,
-      "left": -226.9,
-      "rotate": 90,
+      "top": 117.6,
+      "left": -249.4,
+      "rotate": 180,
       "attrs": { "color": "green" }
     }
   ],
@@ -71,15 +77,17 @@
     [ "gnd1:GND", "bb1:bn.25", "black", [ "v0" ] ],
     [ "vcc1:VCC", "bb1:bp.25", "red", [ "v0" ] ],
     [ "esp:D34", "bb1:5t.e", "gray", [ "h-9.6", "v-0.2" ] ],
-    [ "r2:1", "bb1:8b.g", "", [ "$bb" ] ],
-    [ "r2:2", "bb1:14b.g", "", [ "$bb" ] ],
-    [ "led2:A", "bb1:15b.f", "", [ "$bb" ] ],
-    [ "led2:C", "bb1:14b.f", "", [ "$bb" ] ],
-    [ "r1:1", "bb1:17b.g", "", [ "$bb" ] ],
-    [ "r1:2", "bb1:23b.g", "", [ "$bb" ] ],
+    [ "bb1:5t.a", "pot2:SIG", "gray", [ "v-76.8", "h-67.2" ] ],
+    [ "btn1:1.l", "esp:D25", "#8f4814", [ "h28.8", "v182.4" ] ],
+    [ "btn1:2.l", "bb1:tn.2", "black", [ "h0" ] ],
     [ "led1:A", "bb1:24b.f", "", [ "$bb" ] ],
     [ "led1:C", "bb1:23b.f", "", [ "$bb" ] ],
-    [ "bb1:5t.a", "pot2:SIG", "gray", [ "v-76.8", "h-67.2" ] ]
+    [ "r1:1", "bb1:17b.g", "", [ "$bb" ] ],
+    [ "r1:2", "bb1:23b.g", "", [ "$bb" ] ],
+    [ "led2:A", "bb1:15b.f", "", [ "$bb" ] ],
+    [ "led2:C", "bb1:14b.f", "", [ "$bb" ] ],
+    [ "r2:1", "bb1:8b.g", "", [ "$bb" ] ],
+    [ "r2:2", "bb1:14b.g", "", [ "$bb" ] ]
   ],
   "dependencies": {}
 }
