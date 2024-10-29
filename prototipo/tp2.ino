@@ -8,16 +8,12 @@
 #include <NTPClient.h>
 #include "PubSubClient.h"
 
-
-rgb_lcd lcd;
-
 // ------------------------------------------------
 // Constantes
 // ------------------------------------------------
 #define UMBRAL_SONIDO_BAJO 250
 #define UMBRAL_SONIDO_MEDIO 350
 #define UMBRAL_SONIDO_ALTO 450
-
 // ------------------------------------------------
 // Pines sensores (A = analógico | D = Digital)
 // ------------------------------------------------
@@ -29,12 +25,27 @@ rgb_lcd lcd;
 // ------------------------------------------------
 #define PIN_P_ACTUADOR_LED_SONIDO 32
 #define PIN_D_ACTUADOR_LED_MOVIMIENTO 4
-
 // ------------------------------------------------
 // Parametros MQTT
 // ------------------------------------------------
 #define DESACTIVATE '0' 
 #define ACTIVATE    '1'
+// Dividimos la señal entre 16 canales para replicar el rango 0-255
+#define CANAL 16
+// ------------------------------------------------
+// TEMPORIZADORES
+// ------------------------------------------------
+#define TIME_ACTIVE 3000
+//Cantidad de funciones de verificación de sensores
+#define CANT_FUNCIONES 3
+//Posiciones del Display 16x2, filas y columnas
+#define COL_0 0
+#define ROW_0 0
+#define ROW_1 1
+// Constante para debounce
+#define DEBOUNCE_DELAY 50  // 50 milisegundos de debounce
+
+rgb_lcd lcd;
 
 const char* ssid        = "Personal-184";
 const char* password    = "6A81E77184";
@@ -50,40 +61,26 @@ char mac[50];
 char clientId[50];
 long last_time= millis();
 
-
 WiFiClient espClient;
 PubSubClient client(espClient);
-
 
 //Características del PWM
 const int frecuencia = 1000;
 const int resolucion = 10;
-// Dividimos la señal entre 16 canales para replicar el rango 0-255
-#define CANAL 16
-// ------------------------------------------------
-// TEMPORIZADORES
-// ------------------------------------------------
-#define TIME_ACTIVE 3000
-//Cantidad de funciones de verificación de sensores
-#define CANT_FUNCIONES 3
-//Posiciones del Display 16x2, filas y columnas
-#define COL_0 0
-#define ROW_0 0
-#define ROW_1 1
-
+//timer
 unsigned int time_before;
 
 //Pulsador estados
 int button_state = 0;       // the current state of button
 int last_button_state = 0;  // the previous state of button
-// Constante para debounce
-#define DEBOUNCE_DELAY 50  // 50 milisegundos de debounce
+
 // Agregar una variable para almacenar el tiempo de la última lectura del pulsador.
 unsigned long last_debounce_time = 0; 
 
 //Mensajes tópicos
 unsigned long lastPublishTime = 0;  // Almacena el tiempo de la última publicación
 unsigned long publishInterval = 5000;  // Intervalo de 5 segundos entre publicaciones
+//Tiempo actual en argentina
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -10800, 60000);  // UTC-3 para Buenos Aires
 
@@ -124,11 +121,15 @@ typedef struct sensor_sonido
 
 e_estados estado_actual;
 evento_t evento;
-
+//Estructura del sensor de movimiento
 s_pir sensorMov;
+//Estructura del sensor de sonido
 s_sonido sensorSonido;
+//Índice de funciones
 int indice = 0;
+//Último valor del potenciómetro
 int last_value_potentiometer = 0;
+//Detector de movimiento activo
 int pir_activo = 0;
 
 void start()
@@ -161,7 +162,6 @@ void start()
   //Pulsador
   pinMode(PIN_D_PULSADOR_FUNCION, INPUT_PULLUP);
   button_state = digitalRead(PIN_D_PULSADOR_FUNCION);
-  //attachInterrupt(digitalPinToInterrupt(PIN_D_PULSADOR_FUNCION), interrupcion_pulsador, RISING);
 
   estado_actual = ESTADO_ESCUCHANDO_FULL;
   evento.tipo = EVENTO_NULO;
@@ -170,6 +170,9 @@ void start()
   timeClient.begin();
 }
 
+/*
+* Setup de configuración del WiFi
+*/
 void wifiConnect()  
 {
   WiFi.begin(ssid, password);
@@ -221,18 +224,6 @@ void mqttReconnect()
         delay(5000);
       }
   }
-}
-
-
-
-/*
-* Funcion para capturar interrupción generada
-* por el pulsador.
-*/
-void interrupcion_pulsador()
-{
-  sensorMov.activo = !sensorMov.activo;
-  evento.tipo = EVENTO_PULSADOR;
 }
 
 /*
