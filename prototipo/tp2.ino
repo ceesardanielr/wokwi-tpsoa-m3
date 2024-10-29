@@ -44,22 +44,20 @@
 #define ROW_1 1
 // Constante para debounce
 #define DEBOUNCE_DELAY 50  // 50 milisegundos de debounce
+//
+#define ACTIVO true
 
 rgb_lcd lcd;
 
-const char* ssid        = "Personal-184";
-const char* password    = "6A81E77184";
+//Configuraciones de tópicos
+const char* ssid        = "SO Avanzados";
+const char* password    = "SOA.2019";
 const char* mqttServer  = "broker.emqx.io";
 const char* user_name   = "";
 const char* user_pass   = "";
-//Topicos
 const char * topic_mov = "/notif/movimiento";
-
 int port = 1883;
-String stMac;
-char mac[50];
 char clientId[50];
-long last_time= millis();
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -80,8 +78,9 @@ unsigned long last_debounce_time = 0;
 //Mensajes tópicos
 unsigned long lastPublishTime = 0;  // Almacena el tiempo de la última publicación
 unsigned long publishInterval = 5000;  // Intervalo de 5 segundos entre publicaciones
-//Tiempo actual en argentina
+
 WiFiUDP ntpUDP;
+//Configuración de Tiempo actual en argentina.
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -10800, 60000);  // UTC-3 para Buenos Aires
 
 // Estados
@@ -136,23 +135,20 @@ void start()
 {
   Serial.begin(9600);
   // Display
-  //LCD.init();
-  //LCD.backlight();
   lcd.begin(16, 2);
   lcd.clear();
-  lcd.setRGB(0, 255, 0);
+  lcd.setRGB(30, 125, 100);
   lcd.setCursor(0, 0);
   //Setup Wifi
   wifiConnect();
 
   Serial.println(WiFi.localIP());
   Serial.println(WiFi.macAddress());
-  stMac = WiFi.macAddress();
 
   client.setServer(mqttServer, port);
   client.setCallback(callback);
 
-  mostrar_por_pantalla("ESCUCHANDO FULL", 0, 1);
+  mostrar_por_pantalla("ESCUCHANDO FULL", COL_0, ROW_1);
   //Inicializamos las características del pwm
   ledcAttach(PIN_P_ACTUADOR_LED_SONIDO, frecuencia, resolucion);
   //Led Movimiento
@@ -165,8 +161,9 @@ void start()
 
   estado_actual = ESTADO_ESCUCHANDO_FULL;
   evento.tipo = EVENTO_NULO;
-  sensorMov.activo = true;
+  sensorMov.activo = ACTIVO;
   time_before = millis();
+  //Inicialización cliente NTP  
   timeClient.begin();
 }
 
@@ -183,7 +180,6 @@ void wifiConnect()
   }
 }
 
-
 //Funcion Callback que recibe los mensajes enviados por lo dispositivos
 void callback(char* topic, byte* message, unsigned int length) 
 {
@@ -192,37 +188,37 @@ void callback(char* topic, byte* message, unsigned int length)
   Serial.print("Mensaje Recibido: ");
 
   String stMessage;
-
   
   for (int i = 0; i < length; i++) 
   {
     Serial.print((char) message[i]);
     stMessage += (char) message[i];
-
   }
+
   Serial.println(stMessage);
 }
 
 void mqttReconnect() 
 {
-    if(!client.connected())
+  if(!client.connected())
+  {
+    Serial.print("Intentando conexión MQTT...");
+    long r = random(1000);
+    sprintf(clientId, "clientId-%ld", r);
+    if (client.connect(clientId,user_name,user_pass)) 
     {
-      Serial.print("Intentando conexión MQTT...");
-      long r = random(1000);
-      sprintf(clientId, "clientId-%ld", r);
-      if (client.connect(clientId,user_name,user_pass)) 
-	  {
-        Serial.print(clientId);
-        Serial.println(" conectado");
-        Serial.println("envio");
-        client.subscribe(topic_mov);
-      } else 
-	  {
-        Serial.print("fallo, rc=");
-        Serial.print(client.state());
-        Serial.println("intentando de nuevo en 5 segundos");
-        delay(5000);
-      }
+      Serial.print(clientId);
+      Serial.println(" conectado");
+      Serial.println("envio");
+      client.subscribe(topic_mov);
+    } 
+    else 
+    {
+      Serial.print("fallo, rc=");
+      Serial.print(client.state());
+      Serial.println("intentando de nuevo en 5 segundos");
+      delay(5000);
+    }
   }
 }
 
@@ -274,16 +270,17 @@ void verificar_pulsador()
   }
 
   // Verificar si ha pasado el tiempo de debounce
-  if ((millis() - last_debounce_time) > DEBOUNCE_DELAY) {
+  if ((millis() - last_debounce_time) > DEBOUNCE_DELAY) 
+  {
     // Solo cambiar el estado si el botón cambió de estado
-    if (lectura_actual != button_state) {
+    if (lectura_actual != button_state) 
+    {
       button_state = lectura_actual;
       // Si el estado del botón es LOW, significa que fue presionado
-      if (button_state == LOW) {
+      if (button_state == LOW) 
+      {
         sensorMov.activo = !sensorMov.activo;
         evento.tipo = EVENTO_PULSADOR;
-      } else {
-        //evento.tipo = EVENTO_NULO;
       }
     }
   }
@@ -314,12 +311,7 @@ void verificar_sensor_sonido()
     {
       actualizar_evento_potenciometro(EVENTO_RUIDO_BAJO, brillo);
     }
-    else if (brillo < UMBRAL_SONIDO_BAJO) 
-    {
-      //actualizar_evento_potenciometro(EVENTO_NULO, brillo);
-    }
   }
-  
 }
 
 /*
@@ -371,9 +363,7 @@ void encender_led(e_eventos evento)
 */
 void mostrar_por_pantalla(String mensaje, int colLCD, int rowLCD)
 {
-  //LCD.setCursor(colLCD, rowLCD);
   lcd.setCursor(colLCD, rowLCD);
-  //LCD.println(mensaje);
   lcd.println(mensaje);
 }
 
@@ -543,13 +533,9 @@ void setup()
 
 void loop()
 {
-  delay(10);
   timeClient.update();
-  if (!client.connected()) 
-  {
-    mqttReconnect();
-  }
+  //Reconexión mqtt
+  mqttReconnect();
 
   fsm();
 }
-
