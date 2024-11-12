@@ -4,16 +4,14 @@
 #include <Wire.h>
 #include "rgb_lcd.h"
 #include <WiFi.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
 #include "PubSubClient.h"
 
 // ------------------------------------------------
 // Constantes
 // ------------------------------------------------
-#define UMBRAL_SONIDO_BAJO 250
-#define UMBRAL_SONIDO_MEDIO 350
-#define UMBRAL_SONIDO_ALTO 450
+#define UMBRAL_SONIDO_BAJO 150
+#define UMBRAL_SONIDO_MEDIO 250
+#define UMBRAL_SONIDO_ALTO 350
 // ------------------------------------------------
 // Pines sensores (A = analógico | D = Digital)
 // ------------------------------------------------
@@ -50,12 +48,13 @@
 rgb_lcd lcd;
 
 //Configuraciones de tópicos
-const char* ssid        = "SO Avanzados";
-const char* password    = "SOA.2019";
+const char* ssid        = "Personal-184";
+const char* password    = "6A81E77184";
 const char* mqttServer  = "broker.emqx.io";
 const char* user_name   = "";
 const char* user_pass   = "";
-const char * topic_mov = "/notif/movimiento";
+const char * topic_sensor = "/notif/sensor";
+const char * topic_button = "/notif/modo";
 int port = 1883;
 char clientId[50];
 
@@ -79,9 +78,7 @@ unsigned long last_debounce_time = 0;
 unsigned long lastPublishTime = 0;  // Almacena el tiempo de la última publicación
 unsigned long publishInterval = 5000;  // Intervalo de 5 segundos entre publicaciones
 
-WiFiUDP ntpUDP;
-//Configuración de Tiempo actual en argentina.
-NTPClient timeClient(ntpUDP, "pool.ntp.org", -10800, 60000);  // UTC-3 para Buenos Aires
+int state_active = 2;
 
 // Estados
 enum e_estados {
@@ -163,8 +160,6 @@ void start()
   evento.tipo = EVENTO_NULO;
   sensorMov.activo = ACTIVO;
   time_before = millis();
-  //Inicialización cliente NTP  
-  timeClient.begin();
 }
 
 /*
@@ -183,19 +178,15 @@ void wifiConnect()
 //Funcion Callback que recibe los mensajes enviados por lo dispositivos
 void callback(char* topic, byte* message, unsigned int length) 
 {
+  char cMessage=char(*message);
+
   Serial.print("Se recibio mensaje en el topico: ");
   Serial.println(topic);
-  Serial.print("Mensaje Recibido: ");
+  Serial.print("Mensaje Recibido.");
 
-  String stMessage;
-  
-  for (int i = 0; i < length; i++) 
-  {
-    Serial.print((char) message[i]);
-    stMessage += (char) message[i];
-  }
+  sensorMov.activo = !sensorMov.activo;
+  evento.tipo = EVENTO_PULSADOR;
 
-  Serial.println(stMessage);
 }
 
 void mqttReconnect() 
@@ -210,7 +201,7 @@ void mqttReconnect()
       Serial.print(clientId);
       Serial.println(" conectado");
       Serial.println("envio");
-      client.subscribe(topic_mov);
+      client.subscribe(topic_button);
     } 
     else 
     {
@@ -325,10 +316,10 @@ void verificar_sensor_movimiento()
   {
     evento.tipo = EVENTO_MOVIMIENTO;
     if (currentMillis - lastPublishTime >= publishInterval) {
-      String message = "Movimiento detectado a las " + timeClient.getFormattedTime();
-      char msg[100];
-      message.toCharArray(msg, 100);
-      client.publish(topic_mov, msg);
+      if(sensorMov.activo) {
+        String message = "Movimiento detectado!";
+        client.publish(topic_sensor, message.c_str());
+      }
       lastPublishTime = currentMillis;
     }
     time_before = millis();
@@ -376,7 +367,7 @@ void (*verificar_sensor[CANT_FUNCIONES])() = {verificar_sensor_movimiento, verif
 void tomar_evento()
 {
   unsigned int time_after = millis();
-  if ( (time_after - time_before) > TIME_ACTIVE && estado_actual == 2)
+  if ( (time_after - time_before) > TIME_ACTIVE && estado_actual == state_active)
   {
     evento.tipo = EVENTO_TIMER;
     time_before = time_after;
@@ -533,9 +524,10 @@ void setup()
 
 void loop()
 {
-  timeClient.update();
   //Reconexión mqtt
+  delay(10);
   mqttReconnect();
-
   fsm();
+
+  client.loop();
 }
