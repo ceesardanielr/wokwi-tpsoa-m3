@@ -48,8 +48,8 @@
 rgb_lcd lcd;
 
 //Configuraciones de tópicos
-const char* ssid        = "Personal-184";
-const char* password    = "6A81E77184";
+const char* ssid        = "SO Avanzados";
+const char* password    = "SOA.2019";
 const char* mqttServer  = "broker.emqx.io";
 const char* user_name   = "";
 const char* user_pass   = "";
